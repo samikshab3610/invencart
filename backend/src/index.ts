@@ -7,6 +7,8 @@ import authRoutes from './routes/authRoutes'; // import our auth routes
 import helmet from 'helmet';
 import categoryRoutes from './routes/categoryRoutes';
 import productRoutes from './routes/productRoutes'; 
+import cartRoutes from './routes/cartRoutes';
+import orderRoutes from './routes/orderRoutes';
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.use(helmet()); // sets secure HTTP headers — add this before everything el
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'InvenCart backend is running' });
