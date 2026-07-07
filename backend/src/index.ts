@@ -13,6 +13,7 @@ import paymentRoutes from './routes/paymentRoutes';
 import inventoryRoutes from './routes/inventoryRoutes';
 import wishlistRoutes from './routes/wishlistRoutes'; 
 import reviewRoutes from './routes/reviewRoutes';
+import reportsRoutes from './routes/reportsRoutes';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/reports', reportsRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'InvenCart backend is running' });
