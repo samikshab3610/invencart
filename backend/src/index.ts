@@ -1,5 +1,5 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -14,17 +14,28 @@ import inventoryRoutes from './routes/inventoryRoutes';
 import wishlistRoutes from './routes/wishlistRoutes'; 
 import reviewRoutes from './routes/reviewRoutes';
 import reportsRoutes from './routes/reportsRoutes';
+import morgan from 'morgan';
+
+
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+
+// Log every request — format: "GET /api/products 200 45ms"
+// 'dev' format is colorized and concise — good for development.
+// In production you'd switch to 'combined' for more detailed logs.
+app.use(morgan('dev'));
+app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:5173',   // your future frontend url
-  credentials: true,
+  // In production, reads from env var (your Vercel frontend URL).
+  // In development, falls back to localhost:5173 (Vite's default port).
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true, // required for cookies to work cross-origin
 }));
 app.use(helmet()); // sets secure HTTP headers — add this before everything else
 // Any URL starting with /api/auth will be handled by authRoutes
@@ -39,6 +50,17 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/reports', reportsRoutes);
+
+// Global error handler — catches any error passed via next(error)
+// or any unhandled error that bubbles up through the middleware chain.
+// Must have 4 parameters (err, req, res, next) for Express to recognize
+// it as an error handler — don't remove any of them even if unused.
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err.stack);
+  res.status(500).json({
+    message: 'An unexpected error occurred',
+  });
+});
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'InvenCart backend is running' });
