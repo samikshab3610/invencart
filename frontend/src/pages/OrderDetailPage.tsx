@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import { useAuthStore } from '../store/authStore';
+import { createRazorpayOrder, verifyPayment } from '../api/paymentsApi';
+import { useRazorpay } from '../hooks/useRazorpay';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrderById, cancelOrder } from '../api/ordersApi';
@@ -33,6 +37,62 @@ export default function OrderDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
+
+  const { user } = useAuthStore();
+  const { openCheckout } = useRazorpay();
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  async function handlePayNow() {
+    if (!id) return;
+    setPaymentLoading(true);
+    setPaymentError('');
+
+    try {
+      // Step 1: Create Razorpay order on your backend
+      const razorpayData = await createRazorpayOrder(id);
+
+      // Step 2: Open Razorpay checkout popup
+      await openCheckout({
+        key: razorpayData.keyId,
+        amount: razorpayData.amount,
+        currency: razorpayData.currency,
+        name: 'InvenCart',
+        description: `Order #${id.slice(0, 8).toUpperCase()}`,
+        order_id: razorpayData.razorpayOrderId,
+        prefill: {
+          name: user?.name,
+          email: user?.email ?? undefined,
+        },
+        // Step 3: Payment succeeded — verify with backend
+        onSuccess: async (response) => {
+          try {
+            await verifyPayment({
+              orderId: id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            // Refresh order data to show PAID status
+            queryClient.invalidateQueries({ queryKey: ['order', id] });
+          } catch {
+            setPaymentError('Payment verification failed. Please contact support.');
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+        // User closed the popup without paying
+        onDismiss: () => {
+          setPaymentLoading(false);
+        },
+      });
+    } catch (error: any) {
+      setPaymentError(
+        error.response?.data?.message || 'Failed to initiate payment.'
+      );
+      setPaymentLoading(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -90,16 +150,34 @@ export default function OrderDetailPage() {
 
         {/* Order placed confirmation banner */}
         {order.status === 'PENDING' && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-indigo-800">Order placed successfully!</p>
-              <p className="text-xs text-indigo-600 mt-0.5">
-                Complete payment to confirm your order.
-              </p>
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-indigo-800">Order placed successfully!</p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  Complete payment to confirm your order.
+                </p>
+              </div>
             </div>
+
+            {/* Payment error */}
+            {paymentError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+                <p className="text-red-600 text-xs">{paymentError}</p>
+              </div>
+            )}
+
+            {/* Pay Now button */}
+            <button
+              onClick={handlePayNow}
+              disabled={paymentLoading}
+              className="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {paymentLoading ? 'Opening payment...' : 'Pay Now'}
+            </button>
           </div>
         )}
 
