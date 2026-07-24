@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Product } from '../types';
 
@@ -19,13 +20,16 @@ export default function ProductCard({
     maximumFractionDigits: 0,
   }).format(Number(product.price));
 
+  // Inside the component, before the return:
+  const [wishlisted, setWishlisted] = useState(false);
+
   // Stock status label and color
   const stockStatus =
     product.stock === 0
       ? { label: 'Out of stock', color: 'bg-red-100 text-red-700' }
       : product.stock <= 10
-      ? { label: 'Low stock', color: 'bg-yellow-100 text-yellow-700' }
-      : { label: 'In stock', color: 'bg-green-100 text-green-700' };
+        ? { label: 'Low stock', color: 'bg-yellow-100 text-yellow-700' }
+        : { label: 'In stock', color: 'bg-green-100 text-green-700' };
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group">
@@ -79,13 +83,24 @@ export default function ProductCard({
           </span>
 
           <div className="flex items-center gap-2">
-            {/* Wishlist button */}
+            {/* Wishlist button — turns red/filled after wishlisting */}
             <button
-              onClick={() => onAddToWishlist(product)}
-              className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors"
+              onClick={() => {
+                onAddToWishlist(product);
+                setWishlisted(true);
+              }}
+              className="p-1.5 transition-colors"
               title="Add to wishlist"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className={`w-4 h-4 transition-colors ${wishlisted
+                    ? 'text-red-500 fill-red-500'
+                    : 'text-gray-400 hover:text-indigo-600'
+                  }`}
+                fill={wishlisted ? 'currentColor' : 'none'}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />

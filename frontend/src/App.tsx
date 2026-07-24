@@ -11,6 +11,9 @@ import ShopPage from './pages/ShopPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import OrdersPage from './pages/OrdersPage';
+import WishlistPage from './pages/WishlistPage';
+
 
 // Admin placeholder — will be built in Phase 6
 function AdminPage() {
@@ -79,6 +82,25 @@ export default function App() {
         }
       />
 
+      {/* Order history — requires login */}
+      <Route
+        path="/shop/orders"
+        element={
+          <ProtectedRoute requiredRole="CUSTOMER">
+            <OrdersPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Wishlist — requires login */}
+      <Route
+        path="/shop/wishlist"
+        element={
+          <ProtectedRoute requiredRole="CUSTOMER">
+            <WishlistPage />
+          </ProtectedRoute>
+        }
+      />
       {/* Cart — requires login */}
       <Route
         path="/shop/cart"
